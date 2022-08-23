@@ -158,7 +158,7 @@ func (ti *TableInfo) formatColumn() {
 		}
 
 		// tag 设置
-		formatTag := "`gorm:\"%s column:%s;not null\"`"
+		formatTag := "`gorm:\"%scolumn:%s;not null\"`"
 		f1 := ""
 		if v.Key == "PRI" {
 			f1 = "primaryKey;"

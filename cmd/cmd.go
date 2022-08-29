@@ -8,10 +8,10 @@ import (
 
 var DB *sql.DB
 
-func Receive(dsn,table,output string) {
+func Receive(dsn,table,output,orm string) {
 	connectDB(dsn)
 	sd := new(ShowDesc)
-	tableInfo := sd.getTableInfo(table)
+	tableInfo := sd.getTableInfo(table, orm)
 	tableInfo.generate(output)
 }
 

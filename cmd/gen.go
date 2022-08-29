@@ -15,6 +15,18 @@ type {{.StructName}} struct{
 {{- end}}
 }
 `
+	StructTpl2 = `package {{.PackageName}}
+
+type {{.StructName}} struct{
+{{- range $i, $v := .FormatColumn}}
+    {{$v.Field}} {{$v.Type}} {{$v.Tag}}
+{{- end}}
+}
+
+func (u {{.StructName}}) TableName() string {
+	return "{{.OriTableName}}"
+}
+`
 )
 
 func (ts *TableInfo)generate(output string) {
@@ -26,7 +38,11 @@ func (ts *TableInfo)generate(output string) {
 	}
 	dir := strings.Split(packName,"/")
 	ts.setPackageName(dir[len(dir)-1])
-	tpl, err := template.New("struct").Parse(StructTpl)
+	tplStruct := StructTpl
+	if ts.Orm == "xorm" {
+		tplStruct = StructTpl2
+	}
+	tpl, err := template.New("struct").Parse(tplStruct)
 	if err != nil{
 		panic(err)
 	}

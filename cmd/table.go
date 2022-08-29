@@ -22,6 +22,8 @@ type ColumnFormat struct {
 }
 
 type TableInfo struct {
+	Orm string
+	OriTableName string
 	FileName string
 	StructName string
 	PackageName string
@@ -98,7 +100,7 @@ var TypeMysqlMatchList = []struct {
 	{`^(geometry)[(]\d+[)]`, "[]byte"},
 }
 
-func (sd *ShowDesc) getTableInfo(tableName string) (ti *TableInfo) {
+func (sd *ShowDesc) getTableInfo(tableName,orm string) (ti *TableInfo) {
 	rows, err := DB.Query("desc "+ tableName)
 	if err != nil {
 		panic(err)
@@ -112,12 +114,13 @@ func (sd *ShowDesc) getTableInfo(tableName string) (ti *TableInfo) {
 		ti.setTable(b)
 	}
 	ti.setName(tableName)
-	ti.formatColumn()
+	ti.formatColumn(orm)
 	rows.Close()
 	return
 }
 
 func(ti *TableInfo)setName(tableName string) {
+	ti.OriTableName = tableName
 	names := strings.Split(tableName, "_")
 	tempName := ""
 	for _,v := range names {
@@ -135,7 +138,8 @@ func (ti *TableInfo) setPackageName(name string) {
 	ti.PackageName = name
 }
 
-func (ti *TableInfo) formatColumn() {
+func (ti *TableInfo) formatColumn(orm string) {
+	ti.Orm = orm
 	for _,v := range ti.StructInfo {
 		// 字段
 		fields := strings.Split(v.Field, "_")
@@ -156,14 +160,31 @@ func (ti *TableInfo) formatColumn() {
 				}
 			}
 		}
-
+		formatTag := ""
 		// tag 设置
-		formatTag := "`gorm:\"%scolumn:%s;not null\"`"
-		f1 := ""
-		if v.Key == "PRI" {
-			f1 = "primaryKey;"
+		if orm == "gorm" {
+			formatTag = "`gorm:\"%scolumn:%s;not null\"`"
+			f1 := ""
+			if v.Key == "PRI" {
+				f1 = "primaryKey;"
+			}
+			formatTag = strings.Trim(fmt.Sprintf(formatTag,f1,v.Field), " ")
+		}else {
+			formatTag = "`xorm:\"%s %s\"`"
+			f1 := ""
+			f2 := "notnull"
+			if v.Key == "PRI" {
+				f1 = "pk"
+				if v.Extra == "auto_increment" {
+					f1 += " autoincr"
+				}
+				f2 = ""
+			}else {
+				f1 = strings.Split(v.Type, " ")[0]
+			}
+
+			formatTag = strings.TrimRight(fmt.Sprintf(formatTag,f1,f2), " ")
 		}
-		formatTag = fmt.Sprintf(formatTag,f1,v.Field)
 
 		ti.FormatColumn = append(ti.FormatColumn, &ColumnFormat{
 			formatField,
